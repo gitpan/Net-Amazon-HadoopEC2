@@ -39,7 +39,7 @@ has retry_max => (
     is => 'rw',
     isa => 'Int',
     required => 1,
-    default => 5,
+    default => 10,
 );
 
 has _ssh => (

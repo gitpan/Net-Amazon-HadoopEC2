@@ -3,7 +3,7 @@ use Moose;
 use Net::Amazon::EC2;
 use Net::Amazon::HadoopEC2::Cluster;
 use Net::Amazon::HadoopEC2::Group;
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 has aws_access_key_id => ( is => 'ro', isa => 'Str', required => 1 );
 has aws_secret_access_key => ( is => 'ro', isa => 'Str', required => 1 );
@@ -26,25 +26,31 @@ no Moose;
 
 sub launch_cluster {
     my ($self, $args) = @_;
+    my $name = delete $args->{name};
+    my $key_file = delete $args->{key_file};
+    my $image_id = delete $args->{image_id};
+    my $slaves = delete $args->{slaves};
+    my $key_name = delete $args->{key_name} || 'gsg-keypair';
     Net::Amazon::HadoopEC2::Group->new(
         {
             _ec2           => $self->_ec2,
-            name           => $args->{name},
+            name           => $name,
             aws_account_id => $self->aws_account_id,
         }
     )->ensure or return;
     my $cluster = Net::Amazon::HadoopEC2::Cluster->new(
         {
-            _ec2     => $self->_ec2,
-            name     => $args->{name},
-            key_file => $args->{key_file},
+            _ec2         => $self->_ec2,
+            name         => $name,
+            key_file     => $key_file,
+            %{$args},
         }
     );
     $cluster->launch_cluster( 
         { 
-            slaves => $args->{slaves} || 2 ,
-            image_id => $args->{image_id},
-            key_name => $args->{key_name} || 'gsg-keypair',
+            slaves => defined $slaves ? $slaves : 2 ,
+            image_id => $image_id,
+            key_name => $key_name,
         } 
     ) or return;
     return $cluster;
@@ -52,18 +58,20 @@ sub launch_cluster {
 
 sub find_cluster {
     my ($self, $args) = @_;
+    my $name = delete $args->{name};
+    my $key_file = delete $args->{key_file};
     Net::Amazon::HadoopEC2::Group->new(
         {
             _ec2           => $self->_ec2,
-            name           => $args->{name},
+            name           => $name,
             aws_account_id => $self->aws_account_id,
         }
     )->find or return;
     my $cluster = Net::Amazon::HadoopEC2::Cluster->new(
         {
             _ec2 => $self->_ec2,
-            name => $args->{name},
-            key_file => $args->{key_file},
+            name => $name,
+            key_file => $key_file,
         }
     );
     $cluster->find_cluster or return;
@@ -153,6 +161,22 @@ Location of the private key file associated with key_name.
 =item slaves (optional)
 
 The number of slaves. The default is 2.
+
+=item retry (optional)
+
+Boolean whether EC2 api request retry or not. The default is 1.
+
+=item map_tasks (optional)
+
+MAX_MAP_TASKS to pass to the instances when boot. The default is 2.
+
+=item reduce_tasks (optional)
+
+MAX_REDUCE_TASKS to pass to the instances when boot. The default is 2.
+
+=item compress (optional)
+
+COMPRESS to pass to the instances when boot. The default is 1.
 
 =back
 

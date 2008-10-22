@@ -23,3 +23,4 @@ t/03_find_cluster.t
 t/04_launch_slave.t
 t/05_error.t
 t/10_terminate_cluster.t
+t/20_user_data.t

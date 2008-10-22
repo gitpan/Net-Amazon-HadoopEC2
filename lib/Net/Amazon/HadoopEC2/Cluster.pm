@@ -38,7 +38,7 @@ has retry => ( is => 'rw', isa => 'Int', required => 1, default => 1 );
 has map_tasks => (is => 'rw', isa => 'Int', required => 1, default => 2 );
 has reduce_tasks => (is => 'rw', isa => 'Int', required => 1, default => 2 );
 has compress => (is => 'rw', isa => 'Str', required => 1, default => 'false' );
-
+has user_data => (is => 'rw', isa => 'HashRef', auto_deref => 1 );
 
 __PACKAGE__->meta->make_immutable;
 
@@ -76,9 +76,9 @@ sub _launch_master {
         MAX_MAP_TASKS => $self->map_tasks,
         MAX_REDUCE_TASKS => $self->reduce_tasks,
         COMPRESS => $self->compress,
+        $self->user_data,
     };
     my $user_data_str = join(',', map {join('=', $_, $user_data->{$_})} keys %{$user_data});
-        
     my $result;
     $result = $self->_ec2->run_instances(
         ImageId => $args->{image_id},
@@ -113,9 +113,9 @@ sub launch_slave {
         MAX_MAP_TASKS => $self->map_tasks,
         MAX_REDUCE_TASKS => $self->reduce_tasks,
         COMPRESS => $self->compress,
+        $self->user_data,
     };
     my $user_data_str = join(',', map {join('=', $_, $user_data->{$_})} keys %{$user_data});
-
     my $result = $self->_ec2->run_instances(
         ImageId => $self->master_instance->image_id,
         MinCount => 1,
@@ -386,6 +386,10 @@ MAX_REDUCE_TASKS to pass to the instances when boot.
 =head2 compress
 
 COMPRESS to pass to the instances when boot.
+
+=head2 user_data
+
+additional user data to pass to the instances when boot.
 
 =head2 master_instance
 
